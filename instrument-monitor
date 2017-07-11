@@ -1,0 +1,97 @@
+#!/usr/bin/env python
+
+import yaml
+import threading
+import time
+import signal
+import sys 
+import random
+from datetime import datetime
+
+class Worker(threading.Thread): 
+	def __init__(self,options,logger):
+		threading.Thread.__init__(self)
+		self.options = options
+		self.running = True
+		self.log = logger;
+		for k in ["threshold","name","handler","interval","url","pins","service_format","service_path"]:
+			if (k in options):
+				setattr(self,k,options[k])
+		try:
+			self.trigger_event = getattr(self,options['comparison'])
+			self.get_value = getattr(self,options['input'])
+		except:
+			self.running=False
+			print "Invalid test, exiting thread"
+
+	def run(self):
+		log("Starting thread for %s" % self.name)
+		while(self.running):
+			inp = self.get_value()
+			if (self.trigger_event(inp)):
+				self.log("Triggering handler for %s on value %d" % (self.name,self.threshold))
+			time.sleep(self.options['interval'])
+		log("Exiting Thread %s" % self.name)
+
+	# comparators		
+	def stop(self):
+		self.running=False
+	def value_over(self,value=0):
+		return value>self.threshold
+	def value_under(self,value=0):
+		return value<self.threshold
+	def value_equals(self,value=0):
+		return value==self.threshold
+
+	# value getters
+	def gpio(self):
+		return random.randint(0,100)
+	def service(self):
+		return random.randint(0,100)
+			
+CONF_FILE = "etc/instrument-monitor/monitor.conf";
+
+threads = None
+logfile = None
+
+def initialize():
+	config = yaml.load(open(CONF_FILE))
+
+	global threads
+	threads=[]
+	global logfile
+	if (logfile==None):
+		logfile = open(config['logfile'],'a')
+
+	for device in config['devices']:
+   		monitor = Worker(device,log)
+   		threads.append(monitor);
+   		monitor.start()
+
+	signal.signal(signal.SIGINT,signal_received)
+	signal.signal(signal.SIGTERM,signal_received)
+	signal.signal(signal.SIGHUP,signal_received)
+
+
+def stopthreads():
+	log("Stopping Threads");
+	for thread in threads:
+		thread.stop()
+		thread.join()
+
+def log(message):
+	logfile.write("[%s] %s\n" % (datetime.now().strftime("%Y-%m-%d %H:%M:%S"),message))
+	logfile.flush()
+
+def signal_received(sig,frame):
+	stopthreads();
+	if (sig==signal.SIGINT or sig==signal.SIGTERM):
+		log("Exiting");
+		sys.exit(0);
+	elif (sig==signal.SIGHUP):
+		log("Received HUP, restarting")
+		initialize()
+
+
+initialize()
+signal.pause()
