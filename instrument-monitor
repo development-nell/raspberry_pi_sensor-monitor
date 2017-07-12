@@ -6,6 +6,8 @@ import time
 import signal
 import sys 
 import random
+import RPi.GPIO as GPIO
+
 from datetime import datetime
 
 class Worker(threading.Thread): 
@@ -17,6 +19,9 @@ class Worker(threading.Thread):
 		for k in ["threshold","name","handler","interval","url","pins","service_format","service_path"]:
 			if (k in options):
 				setattr(self,k,options[k])
+		if (self.pins!=None):
+			for pin in self.pins:
+				GPIO.setup(self.pins[pin], GPIO.IN,pull_up_down = GPIO.PUD_DOWN)
 		try:
 			self.trigger_event = getattr(self,options['comparison'])
 			self.get_value = getattr(self,options['input'])
@@ -45,8 +50,13 @@ class Worker(threading.Thread):
 
 	# value getters
 	def gpio(self):
-		return random.randint(0,100)
+		# get values from GPIO pins, least significant bit first
+		value = GPIO.input(self.pins[0]);
+		for pin in range(1,pins.length):
+			value|= GPIO.input(self.pins[pin]) << pin
+		return value
 	def service(self):
+		
 		return random.randint(0,100)
 			
 CONF_FILE = "etc/instrument-monitor/monitor.conf";
