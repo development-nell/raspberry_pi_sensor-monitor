@@ -30,7 +30,7 @@ setup(
     keywords='raspberrypi sbcs',
     py_modules=["instrument-monitor"],
 
-    install_requires=['yaml','RPi.GPIO','datetime'],
+    install_requires=['yaml','RPi.GPIO','datetime','requests'],
 
     entry_points={
         'console_scripts': [
