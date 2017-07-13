@@ -15,6 +15,7 @@ class Worker(threading.Thread):
 		self.running = True
 		self.log = logger;
 		self.event = threading.Event()
+		self.event.clear()
 
 		for key in options:
 			setattr(self,key,options[key])
@@ -34,11 +35,14 @@ class Worker(threading.Thread):
 	def run(self):
 		self.log("Starting thread for %s" % self.name)
 		while(self.running):
+			print self.name
 			current_value = self.getvalue()
 			if (not current_value == None):
 				if (not self.passes(current_value)):
 					self.triggered(current_value)
-					self.event.wait(self.every_x_seconds);
+
+			self.event.wait(self.every_x_seconds);
+			
 			
 	def stop(self):
 		self.log("caught term signal");
