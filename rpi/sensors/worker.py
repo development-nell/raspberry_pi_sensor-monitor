@@ -5,7 +5,6 @@ import time
 import requests
 import re
 import os
-
 #import RPI.GPIO as GPIO
 
 class Worker(threading.Thread): 
@@ -13,7 +12,7 @@ class Worker(threading.Thread):
 		threading.Thread.__init__(self)
 		self.options = options
 		self.running = True
-		self.log = logger;
+		self.logger = logger;
 		self.event = threading.Event()
 		self.event.clear()
 
@@ -30,10 +29,10 @@ class Worker(threading.Thread):
 			self.getvalue = getattr(self,"process_%s" % self.type)
 		except:
 			self.running=False
-			self.log("Invalid test, exiting thread")
+			self.logger.error("Invalid test, exiting thread")
 
 	def run(self):
-		self.log("Starting thread for %s" % self.name)
+		self.logger.error("Starting thread for %s" % self.name)
 		while(self.running):
 			print self.name
 			current_value = self.getvalue()
@@ -45,7 +44,7 @@ class Worker(threading.Thread):
 			
 			
 	def stop(self):
-		self.log("caught term signal");
+		self.logger.error("caught term signal");
 		self.running=False
 		self.event.set()
 
@@ -64,7 +63,7 @@ class Worker(threading.Thread):
 		try:
 			os.system(self.handler)
 		except:
-			self.log("Unable to execute %s" % self.handler)
+			self.logger.error("Unable to execute %s" % self.handler)
 		self.event.wait(self.sleep_x_seconds_on_error)
 
 	def is_less_than(self,value):
@@ -86,7 +85,7 @@ class Worker(threading.Thread):
 		try:
 			res = requests.get(self.url)
 		except Exception as e:
-			self.log("Unable to fetch %s %s" % (self.url,e))
+			self.logger.error("Unable to fetch %s %s" % (self.url,e))
 			return 0
 
 		content_type = res.headers['content-type']
@@ -98,9 +97,9 @@ class Worker(threading.Thread):
 			elif (re.match('\w+=\w+(?:&)?',res.text)):
 				return self.from_query_string(res.text)
 			else:
-				self.log("THIS REGEX IMPLEMENTATION SUCKS BALLS")
+				self.logger.error("Unable to detect content type")
 		else:
-			self.log("request to %s returned status %d" % (self.url,res.status_code))
+			self.logger.error("request to %s returned status %d" % (self.url,res.status_code))
 			return None
 
 		return None
