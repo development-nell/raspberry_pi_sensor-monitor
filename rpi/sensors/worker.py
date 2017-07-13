@@ -4,6 +4,7 @@ import xml.etree.ElementTree as ElementTree
 import time
 import requests
 import re
+import os
 
 #import RPI.GPIO as GPIO
 
@@ -37,7 +38,7 @@ class Worker(threading.Thread):
 			if (not current_value == None):
 				if (not self.passes(current_value)):
 					self.triggered(current_value)
-					self.event.wait(self.interval);
+					self.event.wait(self.every_x_seconds);
 			
 	def stop(self):
 		self.log("caught term signal");
@@ -57,10 +58,10 @@ class Worker(threading.Thread):
 
 	def triggered(self,value=0):
 		try:
-			exec(self.handler)
+			os.system(self.handler)
 		except:
 			self.log("Unable to execute %s" % self.handler)
-		self.event.wait(self.sleep_after)
+		self.event.wait(self.sleep_x_seconds_on_error)
 
 	def is_less_than(self,value):
 		return int(value)<self.criteria[0]
@@ -95,10 +96,10 @@ class Worker(threading.Thread):
 			else:
 				self.log("THIS REGEX IMPLEMENTATION SUCKS BALLS")
 		else:
-			self.log("request to %s returned status %d" % (self.url,res.status_code,res.status_line))
-			return 0;
+			self.log("request to %s returned status %d" % (self.url,res.status_code))
+			return None
 
-		return 0
+		return None
 
 	# webservice value extractors
 	def from_xml(self,body):
