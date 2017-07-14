@@ -5,42 +5,47 @@ import time
 import requests
 import re
 import os
+import importlib
 #import RPI.GPIO as GPIO
 
 class Worker(threading.Thread): 
-	def __init__(self,options,logger):
+	def __init__(self,config,source,logger):
 		threading.Thread.__init__(self)
-		self.options = options
+
+		self.config = config
 		self.running = True
 		self.logger = logger;
+		self.source = source
 		self.event = threading.Event()
 		self.event.clear()
+		self.last_action = None
 
-		for key in options:
-			setattr(self,key,options[key])
+		for key in config:
+			setattr(self,key,config[key])
 
-		self.type = self.input['type']
+		self.type = self.source['type']
 
 		if (hasattr(self,"setup_%s" % self.type)):
 			getattr(self,"setup_%s" % self.type)()
 
 		try:
-			self.passes = getattr(self,self.passes_when)
+			self.test_value = getattr(self,self.passes_when)
+			self.fetch_value = importlib.import_module(self.source['module'])
 			self.getvalue = getattr(self,"process_%s" % self.type)
 		except:
 			self.running=False
 			self.logger.error("Invalid test, exiting thread")
+		
 
 	def run(self):
 		self.logger.error("Starting thread for %s" % self.name)
+		
 		while(self.running):
-			print self.name
 			current_value = self.getvalue()
 			if (not current_value == None):
-				if (not self.passes(current_value)):
-					self.triggered(current_value)
-
-			self.event.wait(self.every_x_seconds);
+				passed = self.test_value(current_value)
+				if (passed)
+					self.event.wait(self.every_x_seconds);
 			
 			
 	def stop(self):
@@ -55,27 +60,48 @@ class Worker(threading.Thread):
 			#GPIO.setup(self.pins[pin], GPIO.IN,pull_up_down = GPIO.PUD_DOWN)
 
 	def setup_webservice(self):
-		self.url = self.input['url']
+		self.url = self.source['url']
 		self.xpath = self.input['xpath']
 		self.attribute = self.input['attribute']
+		self.params={}
+		for key in self.input['params']:
+			self.params[key] = self.input['params'][key]
+		 for key in self.source['default_params']:
+            self.params[key] = self.source['default_params'][key]
 
-	def triggered(self,value=0):
+	def exception(self,value=0,action=0):
+		if (action == self.last_action):
+			return True
 		try:
-			os.system(self.handler)
+			os.system(self.handlers[which])
+			self.last_action = action
 		except:
-			self.logger.error("Unable to execute %s" % self.handler)
+			self.logger.error("Unable to execute %s" % self.handlers[action])
+
 		self.event.wait(self.sleep_x_seconds_on_error)
 
-	def is_less_than(self,value):
-		return int(value)<self.criteria[0]
-	def is_greater_than(self,value):
-		return int(value)>self.criteria[0]
-	def is_equal(self,value):
-		return int(value)==self.threshold
-	def is_between(self,value=0):
-		return (int(value)>=self.criteria[0] and int(value)<=self.criteria[1])
+	# test values against criteria route accordingly
 
-	# value getters
+	def is_less_than(self,value):
+		if (not int(value)<self.criteria[0]):
+			return self.exception(value,0)
+
+	def is_greater_than(self,value):
+		if (int(value)>self.criteria[0]):
+			return self.exception(value,0)
+		return True
+
+	def is_equal(self,value):
+		if (int(value)!=self.threshold):
+			return exception(value,0)
+
+	def is_between(self,value=0):
+		if(int(value)<self.criteria[0]):
+			return self.exception(value,0)
+		elif(int(value)>self.criteria[1]):
+			return self.exception(value,1)
+		return True
+
 	def process_gpio(self):
 		# don't need this quite yet and I don't even have a PI 
 		# and I'm too lazy to mock it up
@@ -89,6 +115,7 @@ class Worker(threading.Thread):
 			return 0
 
 		content_type = res.headers['content-type']
+
 		if (res.status_code == 200):
 			if (re.match('^text/xml',content_type)):
 				return self.from_xml(res.text)

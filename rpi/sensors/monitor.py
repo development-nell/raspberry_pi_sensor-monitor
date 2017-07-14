@@ -8,7 +8,7 @@ import sys
 from rpi.sensors.logger import Logger
 
 class Monitor():
-	def __init__(self,conf_file="etc/monitor.conf"):
+	def __init__(self,conf_file="/etc/sensor-monitor/monitor.conf"):
 		self.threads = []
 		try:
 			self.config = yaml.load(open(conf_file))
@@ -20,14 +20,20 @@ class Monitor():
 
 	def start(self):
 		for device in self.config['devices']:
-			worker = Worker(device,self.logger)
-			self.threads.append(worker);
-			worker.start()
-
-		signal.signal(signal.SIGINT,self.signal_received)
-		signal.signal(signal.SIGTERM,self.signal_received)
-		signal.signal(signal.SIGHUP,self.signal_received)
-		signal.pause()
+			source = config['sources'][device['source']
+			if (!source):
+			   self.logger.error("Invalid source %s for %s" % (device['source'],device['name']))
+			else:
+				worker = Worker(device,source,self.logger)
+				self.threads.append(worker);
+				worker.start()
+		if (len(self.threads)<1):
+			print "No valid devices. Please check logs."
+		else:
+			signal.signal(signal.SIGINT,self.signal_received)
+			signal.signal(signal.SIGTERM,self.signal_received)
+			signal.signal(signal.SIGHUP,self.signal_received)
+			signal.pause()
 
 	def quit(self):
 		for thread in self.threads:
