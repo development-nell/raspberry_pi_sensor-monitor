@@ -91,7 +91,6 @@ class Worker(threading.Thread):
 			return exception(value,0)
 
 	def is_between(self,value=0):
-		print json.dumps(self.criteria,indent=4)
 		if(int(value)<self.criteria[0]):
 			return self.exception(value,0)
 		elif(int(value)>self.criteria[1]):
