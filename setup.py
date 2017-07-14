@@ -7,7 +7,7 @@ from os import path
 here = path.abspath(path.dirname(__file__))
 setup(
 	name='rpi.sensors',
-	version='0.0.1',
+	version='0.0.2',
 	description='A sensor monitor for Raspbian',
 	long_description="Monitor an arbitrary number of sensors and services for arbitrary values and launch handler scripts",
 	url='https://github.com/hollenbeck-ml/raspberry_pi_sensor-monitor',
