@@ -12,10 +12,8 @@ class Worker(threading.Thread):
 	def __init__(self,config,source,logger):
 		threading.Thread.__init__(self)
 
-		self.config = config
 		self.running = True
 		self.logger = logger;
-		self.source = source
 		self.event = threading.Event()
 		self.event.clear()
 		self.last_action = None
@@ -23,7 +21,10 @@ class Worker(threading.Thread):
 		for key in config:
 			setattr(self,key,config[key])
 
+		self.source = source
+
 		self.type = self.source['type']
+		self.service_handler = importlib.import_module(self.source['module'])
 
 		if (hasattr(self,"setup_%s" % self.type)):
 			getattr(self,"setup_%s" % self.type)()
@@ -32,20 +33,19 @@ class Worker(threading.Thread):
 			self.test_value = getattr(self,self.passes_when)
 			self.fetch_value = importlib.import_module(self.source['module'])
 			self.getvalue = getattr(self,"process_%s" % self.type)
-		except:
+		except Exception as e:
 			self.running=False
-			self.logger.error("Invalid test, exiting thread")
+			self.logger.error("Invalid test, exiting thread %s" % e)
 		
 
 	def run(self):
 		self.logger.error("Starting thread for %s" % self.name)
-		
 		while(self.running):
 			current_value = self.getvalue()
 			if (not current_value == None):
 				passed = self.test_value(current_value)
-				if (passed)
-					self.event.wait(self.every_x_seconds);
+				if (passed):
+					self.event.wait(float(self.every_x_seconds));
 			
 			
 	def stop(self):
@@ -61,24 +61,19 @@ class Worker(threading.Thread):
 
 	def setup_webservice(self):
 		self.url = self.source['url']
-		self.xpath = self.input['xpath']
-		self.attribute = self.input['attribute']
-		self.params={}
-		for key in self.input['params']:
-			self.params[key] = self.input['params'][key]
-		 for key in self.source['default_params']:
-            self.params[key] = self.source['default_params'][key]
+		self.xpath = self.source['xpath']
+		self.attribute = self.source['attribute']
 
 	def exception(self,value=0,action=0):
 		if (action == self.last_action):
 			return True
 		try:
-			os.system(self.handlers[which])
+			os.system(self.handlers[action])
 			self.last_action = action
 		except:
 			self.logger.error("Unable to execute %s" % self.handlers[action])
 
-		self.event.wait(self.sleep_x_seconds_on_error)
+		self.event.wait(int(self.sleep_on_fail))
 
 	# test values against criteria route accordingly
 
@@ -96,6 +91,7 @@ class Worker(threading.Thread):
 			return exception(value,0)
 
 	def is_between(self,value=0):
+		print json.dumps(self.criteria,indent=4)
 		if(int(value)<self.criteria[0]):
 			return self.exception(value,0)
 		elif(int(value)>self.criteria[1]):
@@ -103,16 +99,18 @@ class Worker(threading.Thread):
 		return True
 
 	def process_gpio(self):
-		# don't need this quite yet and I don't even have a PI 
-		# and I'm too lazy to mock it up
+		# don't need this quite yet
 		return 0;
 
 	def process_webservice(self):
 		try:
-			res = requests.get(self.url)
+			res = self.service_handler.fetch(self.url,self.params)
 		except Exception as e:
-			self.logger.error("Unable to fetch %s %s" % (self.url,e))
-			return 0
+			return None
+
+		if (res.status_code!=200):
+			self.logger.error(res.text)
+			return None
 
 		content_type = res.headers['content-type']
 
@@ -158,6 +156,7 @@ class Worker(threading.Thread):
 				value = value[node]
 			else:
 				value = value[int(node)]
+
 		return value
 	
 	def from_query_string(self,text):

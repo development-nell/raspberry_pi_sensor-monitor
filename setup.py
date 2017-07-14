@@ -15,8 +15,8 @@ setup(
 	author_email='hollenbeck.ml@gmail.com',
 	license='MIT',
 	keywords='raspberrypi sbcs',
-	packages=["rpi","rpi.sensors"],
-	install_requires=['datetime','requests'],
+	packages=["rpi","rpi.monitor"],
+	install_requires=['datetime','requests','xmltodict','importlib'],
 	data_files=[
 		('/etc/sensor-monitor',['etc/monitor.conf']),
 		('/etc/systemd/system',['etc/sensor-monitor.service'])

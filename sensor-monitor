@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from rpi.sensors.monitor import Monitor
+from rpi.monitor.daemon import Daemon
 
-monitor = Monitor("etc/monitor.conf")
+monitor = Daemon("etc/monitor.conf")
 monitor.start()
