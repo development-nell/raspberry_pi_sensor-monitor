@@ -6,7 +6,7 @@ After=network.target
 Type=simple
 User=nobody
 WorkingDirectory=/tmp
-ExecStart=/usr/local/bin/sensor-monitor
+ExecStart=/usr/bin/sensor-monitor
 Restart=on-abort
 
 [Install]
