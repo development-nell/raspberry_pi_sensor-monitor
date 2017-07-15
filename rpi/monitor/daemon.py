@@ -1,4 +1,3 @@
-import yaml
 import threading
 import time
 from rpi.monitor.worker import Worker
@@ -45,23 +44,40 @@ class Daemon():
 			sys.exit(0);
 		elif (sig==signal.SIGHUP):
 			self.logger.error("Received HUP")
+
 	def load_config(self,conf_file):
 		try:
 			xml = open(conf_file).read()
-			config = xmltodict.parse(xml,force_list=['device','service','params','criteria'])['config']
+			config = xmltodict.parse(xml)['config']#l=['device','service','params','criteria'])['config']
 		except Exception as e:
 			print "Unable to load configuration: %s:" % e
 			sys.exit(1)
 
-		config['services'] = dict((a['name'],a) for a in config['services']['service'])
-		config['devices'] = config['devices']['device']
+		# raspbian's version of xmltodict does not support force_array. Huzzah.
+		if (isinstance(config['services'],dict)):
+			config['services'] = {config['services']['name']:config['services']}
+		else:
+			config['services'] = dict((a['name'],a) for a in config['services'])
 
+		if (isinstance(config['devices'],dict)):
+			config['devices'] = [config['devices']]
+
+	
 		for device in config['devices']:
-			device['params'] = dict((a['name'],a['value']) for a in device['params'])
-			device['handlers'] = device['handlers']['handler']
+			for field in ['handlers','criteria']:
+				if (not isinstance(device[field],list)):
+					device[field] = [device[field]]
+
+			if (isinstance(device['params'],dict)):
+				device['params'] = {device['params']['@name']:device['params']['@value']}
+			else:
+				device['params'] = dict((a['name'],a['value']) for a in service['params'])
 
 		for k in config['services']:
 			service = config['services'][k]
-			service['params'] = dict((a['name'],a['value']) for a in service['params'])
+			if (isinstance(service['params'],dict)):
+				service['params'] = {service['params']['@name']:service['params']['@value']}
+			else:
+				service['params'] = dict((a['@name'],a['@value']) for a in service['params'])
 
 		return config

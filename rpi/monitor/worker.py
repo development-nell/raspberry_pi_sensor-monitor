@@ -1,4 +1,4 @@
-import threading
+idicimport threading
 import json
 import xml.etree.ElementTree as ElementTree
 import time
@@ -39,14 +39,14 @@ class Worker(threading.Thread):
 		
 
 	def run(self):
-		self.logger.error("Starting thread for %s" % self.name)
+		self.logger.error("Starting worker thread for %s" % self.name)
 		while(self.running):
+			self.event.wait(float(self.every_x_seconds))
 			current_value = self.getvalue()
-			if (not current_value == None):
+			if (current_value):
 				passed = self.test_value(current_value)
 				if (passed):
-					self.event.wait(float(self.every_x_seconds));
-			
+					self.last_action = None
 			
 	def stop(self):
 		self.logger.error("caught term signal");
@@ -66,23 +66,27 @@ class Worker(threading.Thread):
 
 	def exception(self,value=0,action=0):
 		if (action == self.last_action):
-			return True
+			return False
+		self.logger.error("Worker %s failed test. Running %s" % (self.name,self.handlers[action]))
+
 		try:
 			os.system(self.handlers[action])
 			self.last_action = action
 		except:
 			self.logger.error("Unable to execute %s" % self.handlers[action])
 
-		self.event.wait(int(self.sleep_on_fail))
+		self.event.wait(float(self.sleep_on_fail))
+		return False
 
 	# test values against criteria route accordingly
 
 	def is_less_than(self,value):
-		if (not int(value)<self.criteria[0]):
+		if (int(value)>self.criteria[0]):
 			return self.exception(value,0)
+		return True
 
 	def is_greater_than(self,value):
-		if (int(value)>self.criteria[0]):
+		if (int(value)<self.criteria[0]):
 			return self.exception(value,0)
 		return True
 
@@ -146,16 +150,24 @@ class Worker(threading.Thread):
 		return value
 		
 
-	def from_json(self,json):
-		value=json
+	def from_json(self,data):
+		value=data
 		for node in self.xpath.split("/"):
 			if (value==None):
 				break
 			if (isinstance(value,dict)):
-				value = value[node]
-			else:
+				if (node in value):
+					value = value[node]
+				else:
+					self.logger.error("Value %s not found. Please check API docs for correct format of xpath %s" % (node,self.xpath))
+					value = None
+					break
+			elif(isinstance(value,list)):
+				if (not len(value)):
+					self.logger.error("Index %s out of range for node" % node)
+					value = None
+					break
 				value = value[int(node)]
-
 		return value
 	
 	def from_query_string(self,text):

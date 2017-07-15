@@ -2,5 +2,5 @@
 
 from rpi.monitor.daemon import Daemon
 
-monitor = Daemon("etc/monitor.conf")
+monitor = Daemon("/etc/sensor-monitor/monitor.conf")
 monitor.start()
