@@ -1,4 +1,4 @@
-idicimport threading
+import threading
 import json
 import xml.etree.ElementTree as ElementTree
 import time

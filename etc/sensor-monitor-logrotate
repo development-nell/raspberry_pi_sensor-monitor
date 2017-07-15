@@ -1,0 +1,10 @@
+/var/log/sensor-monitor-error.log {
+    daily
+    missingok
+    rotate 7
+    compress
+    notifempty
+    maxsize 10M
+    copytruncate
+}
+
