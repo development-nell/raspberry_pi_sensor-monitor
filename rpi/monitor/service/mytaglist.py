@@ -3,15 +3,19 @@ import sys
 import json
 from datetime import datetime,timedelta
 
-def fetch(url,params):
+def fetch(url,logger,params):
 
 	end = datetime.now()
-	start = end - timedelta(minutes=1)
+	start = end - timedelta(minutes=3)
 
 
 	params['toDate'] = end.strftime("%Y-%m-%dT%H:%M:%S")
 	params['fromDate'] = start.strftime("%Y-%m-%dT%H:%M:%S")
 	params['dataType'] = "json"
+
+	logger.info("Request to %s" % url) 
+	logger.info("Sending params %s" % json.dumps(params))
+	
 	res = requests.post(
 		url,
 		json=params,

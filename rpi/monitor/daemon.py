@@ -13,20 +13,20 @@ class Daemon():
 	def __init__(self,conf_file="/etc/sensor-monitor/monitor.conf"):
 		self.threads = []
 		self.config = self.load_config(conf_file)
-		self.logger = Logger(self.config['logdir'])
+		self.logger = Logger(self.config['logdir'],self.config['loglevel'])
 
 	def start(self):
 		for device in self.config['devices']:
 			service = self.config['services'][device['source']]
 
 			if (not service):
-			   self.logger.error("Invalid service %s for %s" % (device['source'],device['name']))
+			   self.logger.error("Invalid service %s for %s. Skipping." % (device['source'],device['name']))
 			else:
 				worker = Worker(device,service,self.logger)
 				self.threads.append(worker);
 				worker.start()
 		if (len(self.threads)<1):
-			print "No valid devices. Please check logs."
+			self.logger.error("No valid devices. Please check logs.")
 		else:
 			signal.signal(signal.SIGINT,self.signal_received)
 			signal.signal(signal.SIGTERM,self.signal_received)
@@ -40,10 +40,10 @@ class Daemon():
 	def signal_received(self,sig,frame):
 		if (sig==signal.SIGINT or sig==signal.SIGTERM):
 			self.quit()
-			self.logger.error("Exiting");
+			self.logger.info("Exiting");
 			sys.exit(0);
 		elif (sig==signal.SIGHUP):
-			self.logger.error("Received HUP")
+			self.logger.info("Received HUP")
 
 	def load_config(self,conf_file):
 		try:
