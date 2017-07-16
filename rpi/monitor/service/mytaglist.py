@@ -6,8 +6,7 @@ from datetime import datetime,timedelta
 def fetch(url,logger,params):
 
 	end = datetime.now()
-	start = end - timedelta(minutes=3)
-
+	start = end - timedelta(minutes=5)
 
 	params['toDate'] = end.strftime("%Y-%m-%dT%H:%M:%S")
 	params['fromDate'] = start.strftime("%Y-%m-%dT%H:%M:%S")

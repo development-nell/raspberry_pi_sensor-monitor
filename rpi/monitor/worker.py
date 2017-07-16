@@ -6,6 +6,7 @@ import requests
 import re
 import os
 import importlib
+import subprocess
 #import RPI.GPIO as GPIO
 
 class Worker(threading.Thread): 
@@ -84,10 +85,14 @@ class Worker(threading.Thread):
 			return False;
 		try:
 			self.logger.debug("Running handler '%s' for worker %s" % (handler,self.name))
-			os.system(self.handlers[action])
+			hp= re.findall(r'[^"\s]\S*|".+?"',self.handlers[action])
+
+			x = subprocess.check_output(hp,stderr=subprocess.STDOUT)
+			self.logger.debug("Handler %s on worker %s  returned %s" % (handler,self.name,x))
+
 			self.last_action = action
 		except Exception as e:
-			self.logger.error("Unable to execute '%s' for worker %s: %s" % handler,self.name,e)
+			self.logger.error("Unable to execute '%s' for worker %s: %s" % (handler,self.name,e))
 
 		self.event.wait(float(self.sleep_on_fail))
 		return False
@@ -95,24 +100,24 @@ class Worker(threading.Thread):
 	# test values against criteria route accordingly
 
 	def is_less_than(self,value):
-		if (int(value)>int(Self.criteria[0])):
+		if (float(value)>float(Self.criteria[0])):
 			return self.exception(value,0)
 		return True
 
 	def is_greater_than(self,value):
-		if (int(value)<int(self.criteria[0])):
+		if (float(value)<float(self.criteria[0])):
 			return self.exception(value,0)
 		return True
 
 	def is_equal(self,value):
-		if (int(value)!=int(self.criteria[0])):
+		if (float(value)!=float(self.criteria[0])):
 			return exception(value,0)
 		return true
 
 	def is_between(self,value=0):
-		if(int(value)<int(self.criteria[0])):
+		if(float(value)<float(self.criteria[0])):
 			return self.exception(value,0)
-		elif(int(value)>int(self.criteria[1])):
+		elif(float(value)>float(self.criteria[1])):
 			return self.exception(value,1)
 		return True
 
