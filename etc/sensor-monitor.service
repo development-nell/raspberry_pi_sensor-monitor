@@ -4,7 +4,7 @@ After=network.target
 
 [Service]
 Type=simple
-User=nobody
+User=pi
 WorkingDirectory=/tmp
 ExecStart=/usr/bin/sensor-monitor
 Restart=on-abort

@@ -1,23 +1,46 @@
 import requests
 import sys
 import json
+import rpi.monitor.service_base as service_base
+import math
 from datetime import datetime,timedelta
 
-def fetch(url,logger,params):
+class Handler(service_base.Service):
+	LOG_BASE =  2.71828
+	def __init__(self,config,logger):
+		self.config = config
+		self.logger = logger
 
-	end = datetime.now()
-	start = end - timedelta(minutes=5)
+	def fetch(self,params):
 
-	params['toDate'] = end.strftime("%Y-%m-%dT%H:%M:%S")
-	params['fromDate'] = start.strftime("%Y-%m-%dT%H:%M:%S")
-	params['dataType'] = "json"
+		end = datetime.now()
+		start = end - timedelta(minutes=5)
 
-	logger.info("Request to %s" % url) 
-	logger.info("Sending params %s" % json.dumps(params))
+		params['toDate'] = end.strftime("%Y-%m-%dT%H:%M:%S")
+		params['fromDate'] = start.strftime("%Y-%m-%dT%H:%M:%S")
+		params['dataType'] = "json"
+
+		self.logger.info("Request to %s" % self.config['url']) 
+		self.logger.info("Sending params %s" % json.dumps(params))
 	
-	res = requests.post(
-		url,
-		json=params,
-		headers={"content-type":"application/json"}
-	)
-	return res
+		res = requests.post(
+			self.config['url'],
+			json=params,
+			headers={"content-type":"application/json"}
+		).json()
+
+		humidity = self.value_from_json(self.config['xpath-humidity'],res);
+
+		if (self.config['mode'] == "relative"):
+			return humidity
+
+		temperature = self.value_from_json(self.config['xpath-temp'],res);
+		humidity = float(humidity)
+
+		absolute_humidity = (6.112 * math.exp((17.67 * temperature)/(temperature+243.5)) * humidity * 2.1674)/(273.15+temperature)
+		self.logger.info("Absolute humidity for %fC/relative %f is: %f" % (temperature,humidity,absolute_humidity))
+		return absolute_humidity
+		
+		
+
+		
