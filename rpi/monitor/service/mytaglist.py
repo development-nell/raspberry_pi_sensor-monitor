@@ -14,11 +14,12 @@ class Handler(service_base.Service):
 	def fetch(self,params):
 
 		end = datetime.now()
-		start = end - timedelta(minutes=5)
+		start = end - timedelta(minutes=int(self.config['data_interval']))
 
 		params['toDate'] = end.strftime("%Y-%m-%dT%H:%M:%S")
 		params['fromDate'] = start.strftime("%Y-%m-%dT%H:%M:%S")
 		params['dataType'] = "json"
+
 
 		self.logger.info("Request to %s" % self.config['url']) 
 		self.logger.info("Sending params %s" % json.dumps(params))
@@ -29,7 +30,10 @@ class Handler(service_base.Service):
 			headers={"content-type":"application/json"}
 		).json()
 
+		self.logger.info(res);
+		
 		humidity = self.value_from_json(self.config['xpath-humidity'],res);
+		
 
 		if (self.config['mode'] == "relative"):
 			return humidity
